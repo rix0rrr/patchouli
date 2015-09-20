@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import cStringIO as StringIO
+try:
+  import cStringIO as io
+except ImportError:
+  import io
+
 import cmd
 import itertools
 import pprint
@@ -19,8 +23,8 @@ def list_generator(fn):
   return decorated
 
 
-def by_file_id(a, b):
-  return cmp(a.file_id, b.file_id)
+def get_file_id(a):
+  return a.file_id
 
 
 class Hunk(object):
@@ -39,14 +43,14 @@ class Hunk(object):
     return self.patch_file.path
 
   def prn(self):
-    termcolor.cprint(string.center(' %s ' % self.filename, 70, '*'), 'yellow')
+    termcolor.cprint('{:*^70}'.format(' %s ' % self.filename), 'yellow')
     for line in self.patch:
       if line.is_removed:
         termcolor.cprint('-' + line.value, 'red')
       elif line.is_added:
         termcolor.cprint('+' + line.value, 'green')
       else:
-        print ' ' + line.value
+        print(' ' + line.value)
 
   def write_file_header(self, fobj):
     fobj.write('--- %s\t%s\n' % (self.patch_file.source_file, self.patch_file.source_timestamp))
@@ -66,8 +70,8 @@ def make_hunks(patch_set):
 @list_generator
 def group_hunks_by_file(hunks):
   """Return a list of lists of all hunks that belong to the same file."""
-  ss = sorted(hunks, by_file_id)
-  for _, hunks in itertools.groupby(ss, lambda x: x.file_id):
+  ss = sorted(hunks, key=get_file_id)
+  for _, hunks in itertools.groupby(ss, get_file_id):
     yield list(hunks)
 
 class ChangeSet(object):
@@ -118,7 +122,7 @@ class ChangeSet(object):
   def prn(self):
     for i, hunk in enumerate(self.hunks):
       indicator = '->' if  i + 1 == self.index else '  '
-      print '%s %3d) %s' % (indicator, i + 1, hunk.filename)
+      print('%s %3d) %s' % (indicator, i + 1, hunk.filename))
 
   def take(self):
     """Remove the currently selected hunk."""
@@ -183,7 +187,7 @@ class ChangeCollection(object):
   def prn(self):
     for name in self.set_names:
       indicator = '->' if  self.current_set_name == name else '  '
-      print '%s %s (%d hunks)' % (indicator, name, self.sets[name].count)
+      print('%s %s (%d hunks)' % (indicator, name, self.sets[name].count))
 
   @property
   def current_hunk(self):
@@ -236,7 +240,7 @@ class ChangeCollection(object):
     filename = name + '.patch'
     with open(filename, 'w') as f:
       self.sets[name].write(f)
-    print 'Wrote %s' % filename
+    print('Wrote %s' % filename)
 
   def autocomplete(self, prefix):
     return [name for name in self.set_names if name.startswith(prefix)]
@@ -254,9 +258,9 @@ class CommandLoop(cmd.Cmd):
   def onecmd(self, str):
     try:
       return cmd.Cmd.onecmd(self, str)
-    except RuntimeError, e:
+    except RuntimeError as e:
       termcolor.cprint(e, 'red')
-    except Exception, e:
+    except Exception as e:
       termcolor.cprint(traceback.format_exc(), 'red')
 
   def show_current_hunk(self):
@@ -284,7 +288,7 @@ class CommandLoop(cmd.Cmd):
     if not line:
       raise RuntimeError('Create needs an argument')
     self.coll.create(line)
-    print '(Change set created. Type \'set %s\' to switch to it, or \'move %s\' to move a hunk there)' % (line, line)
+    print('(Change set created. Type \'set %s\' to switch to it, or \'move %s\' to move a hunk there)' % (line, line))
 
   def do_show(self, line):
     """show
@@ -298,7 +302,7 @@ class CommandLoop(cmd.Cmd):
     List the current change set."""
     self.coll.current_set.prn()
     if not self.coll.current_set.empty:
-      print '(Type \'hunk N\' to go to a specific hunk, \'show\' to show the current hunk)'
+      print('(Type \'hunk N\' to go to a specific hunk, \'show\' to show the current hunk)')
 
   def do_n(self, line):
     """next | n
@@ -350,7 +354,7 @@ class CommandLoop(cmd.Cmd):
       raise RuntimeError('move needs a change set name on the first invocation')
     self.last_move = name
     self.coll.move(name)
-    print '(Hunk moved to change set %r)' % name
+    print('(Hunk moved to change set %r)' % name)
     self.show_current_hunk()
 
   def complete_set(self, text, line, beginidx, endidx):
@@ -373,7 +377,7 @@ class CommandLoop(cmd.Cmd):
     Undo the last 'move' command.
     """
     undo = self.coll.undo()
-    print '(Moved hunk back from %r to %r)' % (undo.target_set, undo.source_set)
+    print('(Moved hunk back from %r to %r)' % (undo.target_set, undo.source_set))
     self.show_current_hunk()
 
   def do_write(self, line):
@@ -394,20 +398,20 @@ class CommandLoop(cmd.Cmd):
 
 def read_all_files(filenames):
   """Read all files into a StringIO buffer."""
-  return StringIO.StringIO('\n'.join(open(f).read() for f in filenames))
+  return io.StringIO('\n'.join(open(f).read() for f in filenames))
 
 
 def main():
   filenames = sys.argv[1:]
   if not filenames:
-    print 'Usage: patchouli.py FILE [...]'
+    print('Usage: patchouli.py FILE [...]')
     sys.exit(1)
 
   buffer = read_all_files(filenames)
   patch_set = unidiff.PatchSet(buffer)
   unclassified = ChangeSet(make_hunks(patch_set))
   app = ChangeCollection(unclassified)
-  print '(Type \'create foo\' then \'move foo\' to start classifying hunks)'
+  print('(Type \'create foo\' then \'move foo\' to start classifying hunks)')
   try:
     CommandLoop(app).cmdloop()
   except KeyboardInterrupt:
