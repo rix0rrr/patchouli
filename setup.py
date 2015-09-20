@@ -14,7 +14,7 @@ except IOError:
 #https://packaging.python.org/en/latest/distributing.html
 setup(
     name='patchouli',
-    version='0.1.0',
+    version='0.1.1',
     description='interactive patch file splitting tool',
     long_description=long_description,
     url='https://github.com/rix0rrr/patchouli',
@@ -65,6 +65,6 @@ setup(
     # project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['pyparsing>=2.0.3'],
+    install_requires=['unidiff>=0.5.1', 'termcolor>=1.1.0'],
 )
 
