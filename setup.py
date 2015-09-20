@@ -15,7 +15,7 @@ except IOError:
 setup(
     name='patchouli',
     version='0.1.1',
-    description='interactive patch file splitting tool',
+    description='Interactive patch file splitting tool',
     long_description=long_description,
     url='https://github.com/rix0rrr/patchouli',
     author='Rico Huijbers',
