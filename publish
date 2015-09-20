@@ -1,0 +1,13 @@
+#!/bin/bash
+set -o errexit
+
+TEST_SCRIPT='create a\nmove a\nundo\nwrite'
+
+echo -e $TEST_SCRIPT | python ./patchouli.py example.patch
+echo -e $TEST_SCRIPT | python3 ./patchouli.py example.patch
+
+rm a.patch unclassified.patch
+
+rm -rf dist
+python setup.py sdist bdist_wheel
+twine upload dist/*
